@@ -45,6 +45,23 @@ app.use('/api/credit', creditRoutes);
 app.use('/api/branches', branchRoutes);
 app.use('/api/export', exportRoutes);
 
+// API root endpoint
+app.get('/api', (req, res) => {
+  res.status(200).json({ 
+    message: 'SmartSCCO Banking API',
+    version: '1.0.0',
+    status: 'Running',
+    endpoints: {
+      auth: '/api/auth',
+      wallet: '/api/wallet',
+      loans: '/api/loans',
+      admin: '/api/admin',
+      health: '/api/health'
+    },
+    documentation: 'https://smartscco-api.onrender.com/api-docs'
+  });
+});
+
 // Health check endpoint for Render
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
