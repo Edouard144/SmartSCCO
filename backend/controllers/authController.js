@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const { createUser, getUserByEmail, getUserById, saveRefreshToken, getUserByRefreshToken } = require('../models/userModel');
 const { createWallet } = require('../models/walletModel');
-const { generateOTP, verifyOTP } = require('../utils/otpGenerator');
+const { generateEmailOTP, generatePhoneOTP, verifyOTP } = require('../utils/otpGenerator');
 const { saveDevice, findDevice, updateLastLogin } = require('../models/deviceModel');
 const { validateRegister, validateLogin } = require('../utils/validators');
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
@@ -24,65 +24,57 @@ const register = async (req, res) => {
   }
 };
 
-// LOGIN STEP 1 — verify password send OTP
+// LOGIN STEP 1 — verify password, send OTP based on preference
 const login = async (req, res) => {
   try {
     const { error } = validateLogin(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const { email, password } = req.body;
+    const { email, password, method } = req.body; // Add method parameter
     const user = await getUserByEmail(email);
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(400).json({ error: 'Invalid credentials' });
 
-    generateOTP(email);
-    res.json({ message: 'OTP sent. Please verify to complete login.' });
+    // Send OTP based on user preference
+    if (method === 'email') {
+      await generateEmailOTP(email);
+      res.json({ message: 'Email OTP sent. Please verify to complete login.' });
+    } else if (method === 'phone') {
+      await generatePhoneOTP(email, user.phone);
+      res.json({ message: 'SMS OTP sent. Please verify to complete login.' });
+    } else {
+      res.status(400).json({ error: 'Invalid method. Use "email" or "phone"' });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
   }
 };
 
-// LOGIN STEP 2 — verify OTP issue tokens
+// VERIFY OTP
 const verifyLogin = async (req, res) => {
   try {
-    const { email, otp } = req.body;
-    if (!email || !otp) return res.status(400).json({ error: 'Email and OTP required' });
-
-    const valid = verifyOTP(email, otp);
-    if (!valid) return res.status(400).json({ error: 'Invalid or expired OTP' });
-
-    const user = await getUserByEmail(email);
-
-    // Device tracking
-    const ip_address = req.ip || req.connection.remoteAddress;
-    const device_name = req.headers['user-agent'] || 'Unknown Device';
-    const existingDevice = await findDevice(user.id, ip_address);
-
-    if (!existingDevice) {
-      await saveDevice(user.id, device_name, ip_address);
-      await require('../db').query(
-        `INSERT INTO fraud_alerts (user_id, alert_type, severity) VALUES ($1, 'new_device_login', 'medium')`,
-        [user.id]
-      );
-    } else {
-      await updateLastLogin(existingDevice.device_id);
+    const { email, otp, method } = req.body; // Add method parameter
+    if (!email || !otp || !method) {
+      return res.status(400).json({ error: 'Email, OTP, and method required' });
     }
 
-    // Generate both tokens
+    const isValid = verifyOTP(email, otp, method);
+    if (!isValid) return res.status(400).json({ error: 'Invalid or expired OTP' });
+
+    // Generate tokens and login user
+    const user = await getUserByEmail(email);
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-
-    // Save refresh token in DB
     await saveRefreshToken(user.id, refreshToken);
 
     res.json({
       message: 'Login successful',
       accessToken,
-      refreshToken, // Client saves this for later
-      new_device: !existingDevice
+      refreshToken,
+      user: { id: user.id, email: user.email, role: user.role }
     });
   } catch (error) {
     console.error(error);
