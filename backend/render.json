@@ -1,0 +1,13 @@
+{
+  "version": "1",
+  "services": {
+    "api": {
+      "buildCommand": "npm install",
+      "startCommand": "npm start",
+      "healthCheckPath": "/api/health",
+      "envVars": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
