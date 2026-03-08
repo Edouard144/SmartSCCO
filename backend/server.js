@@ -31,6 +31,9 @@ app.use(helmet());
 app.use(express.json());
 app.use(generalLimiter);
 
+// Trust Render's proxy — required for rate limiter to work on hosted servers
+app.set('trust proxy', 1);
+
 // Swagger Docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

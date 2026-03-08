@@ -5,6 +5,7 @@ const { generateEmailOTP, generatePhoneOTP, verifyOTP } = require('../utils/otpG
 const { saveDevice, findDevice, updateLastLogin } = require('../models/deviceModel');
 const { validateRegister, validateLogin } = require('../utils/validators');
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
+const { generateOTP, verifyOTP } = require('../utils/otpGenerator');
 const jwt = require('jsonwebtoken');
 
 // REGISTER
