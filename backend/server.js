@@ -1,10 +1,12 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { generalLimiter } = require('./utils/rateLimiter');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./utils/swagger');
 
+// Import routes
 const authRoutes = require('./routes/authRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const loanRoutes = require('./routes/loanRoutes');
@@ -23,12 +25,16 @@ const exportRoutes = require('./routes/exportRoutes');
 
 const app = express();
 
+// Middleware
 app.use(cors());
+app.use(helmet());
 app.use(express.json());
 app.use(generalLimiter);
 
+// Swagger Docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/loans', loanRoutes);
@@ -45,24 +51,17 @@ app.use('/api/credit', creditRoutes);
 app.use('/api/branches', branchRoutes);
 app.use('/api/export', exportRoutes);
 
-// API root endpoint
+// Root endpoint
 app.get('/api', (req, res) => {
   res.status(200).json({ 
     message: 'SmartSCCO Banking API',
     version: '1.0.0',
     status: 'Running',
-    endpoints: {
-      auth: '/api/auth',
-      wallet: '/api/wallet',
-      loans: '/api/loans',
-      admin: '/api/admin',
-      health: '/api/health'
-    },
-    documentation: 'https://smartscco-api.onrender.com/api-docs'
+    documentation: '/api-docs'
   });
 });
 
-// Health check endpoint for Render
+// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
@@ -71,6 +70,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
