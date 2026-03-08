@@ -5,6 +5,7 @@ const { validateAmount, validateTransfer } = require('../utils/validators');
 const { getUserPin } = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const pool = require('../db');
+const { notify } = require('../utils/notifier');
 
 const getBalance = async (req, res) => {
   try {
@@ -37,6 +38,13 @@ const deposit = async (req, res) => {
       type: 'deposit',
       reference: `DEP-${Date.now()}`
     });
+
+    await notify(
+      req.user.id,
+      'Deposit Successful',
+      `${amount} RWF deposited to your wallet.`,
+      'transfer'
+    );
 
     res.json({
       message: 'Deposit successful',
@@ -85,6 +93,13 @@ const withdraw = async (req, res) => {
       reference: `WIT-${Date.now()}`
     });
 
+    await notify(
+      req.user.id,
+      'Withdrawal Successful',
+      `${amount} RWF withdrawn from your wallet.`,
+      'transfer'
+    );
+
     res.json({
       message: 'Withdrawal successful',
       balance: new_balance,
@@ -94,6 +109,7 @@ const withdraw = async (req, res) => {
     console.error(error);
     res.status(500).json({ error: 'Server error' });
   }
+
 };
 
 const transfer = async (req, res) => {
@@ -191,6 +207,19 @@ const savedDate = freshData.daily_transfer_date
       type: 'transfer',
       reference: `TRF-${Date.now()}`
     });
+
+     await notify(
+      req.user.id,
+      'Transfer Sent',
+      `You sent ${amount} RWF successfully.`,
+      'transfer'
+     );
+      await notify(
+      receiverWallet.user_id,
+      'Money Received',
+      `You received ${amount} RWF in your wallet.`,
+      'transfer'
+    );
 
     res.json({
       message: 'Transfer successful',
