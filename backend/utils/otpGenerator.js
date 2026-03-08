@@ -27,10 +27,10 @@ const generateEmailOTP = async (email) => {
   const emailOTP = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 5 * 60 * 1000;
 
-  if (!otpStore[email]) {
-    otpStore[email] = { expiresAt };
-  }
-  otpStore[email].emailOTP = emailOTP;
+  // Always overwrite with fresh OTP
+  otpStore[email] = { emailOTP, expiresAt };
+
+  console.log(`📦 OTP stored for ${email}:`, otpStore[email]);
 
   try {
     await transporter.sendMail({
@@ -53,10 +53,9 @@ const generatePhoneOTP = async (email, phone) => {
   const phoneOTP = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 5 * 60 * 1000;
 
-  if (!otpStore[email]) {
-    otpStore[email] = { expiresAt };
-  }
-  otpStore[email].phoneOTP = phoneOTP;
+  otpStore[email] = { phoneOTP, expiresAt };
+
+  console.log(`📦 OTP stored for ${email}:`, otpStore[email]);
 
   try {
     await twilioClient.messages.create({
@@ -75,17 +74,30 @@ const generatePhoneOTP = async (email, phone) => {
 
 // Verify OTP (email or phone)
 const verifyOTP = (email, otp, method) => {
+  console.log(`🔍 Verifying OTP for ${email}, method: ${method}, entered: ${otp}`);
+  console.log(`📦 Store contents:`, JSON.stringify(otpStore[email]));
+
   const record = otpStore[email];
-  if (!record) return false;
+  if (!record) {
+    console.log('❌ No record found');
+    return false;
+  }
   if (Date.now() > record.expiresAt) {
+    console.log('❌ OTP expired');
     delete otpStore[email];
     return false;
   }
 
   if (method === 'email') {
-    return record.emailOTP === otp;
+    console.log(`🔑 Expected: ${record.emailOTP}, Got: ${otp}`);
+    const valid = record.emailOTP === otp;
+    if (valid) delete otpStore[email]; // delete after successful use
+    return valid;
   } else if (method === 'phone') {
-    return record.phoneOTP === otp;
+    console.log(`🔑 Expected: ${record.phoneOTP}, Got: ${otp}`);
+    const valid = record.phoneOTP === otp;
+    if (valid) delete otpStore[email];
+    return valid;
   }
   return false;
 };

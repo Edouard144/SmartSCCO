@@ -1,11 +1,10 @@
 const bcrypt = require('bcrypt');
 const { createUser, getUserByEmail, getUserById, saveRefreshToken, getUserByRefreshToken } = require('../models/userModel');
 const { createWallet } = require('../models/walletModel');
-const { generateEmailOTP, generatePhoneOTP, verifyOTP } = require('../utils/otpGenerator');
+const { generateEmailOTP, generatePhoneOTP, verifyOTP, generateOTP} = require('../utils/otpGenerator');
 const { saveDevice, findDevice, updateLastLogin } = require('../models/deviceModel');
 const { validateRegister, validateLogin } = require('../utils/validators');
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwt');
-const { generateOTP, verifyOTP } = require('../utils/otpGenerator');
 const jwt = require('jsonwebtoken');
 
 // REGISTER
@@ -133,7 +132,7 @@ const forgotPassword = async (req, res) => {
     // Always return same message to prevent email enumeration
     if (!user) return res.json({ message: 'If email exists, OTP has been sent' });
 
-    generateOTP(email);
+    await generateEmailOTP(email);
     res.json({ message: 'If email exists, OTP has been sent' });
   } catch (error) {
     console.error(error);
