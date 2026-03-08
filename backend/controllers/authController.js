@@ -149,7 +149,7 @@ const resetPassword = async (req, res) => {
     }
 
     // Verify OTP
-    const valid = verifyOTP(email, otp);
+    const valid = verifyOTP(email, otp, 'email');
     if (!valid) return res.status(400).json({ error: 'Invalid or expired OTP' });
 
     // Hash new password and save
