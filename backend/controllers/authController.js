@@ -20,6 +20,18 @@ const register = async (req, res) => {
     res.status(201).json({ message: 'Account created successfully', user });
   } catch (error) {
     console.error(error);
+    if (error.code === '23505') {
+      if (error.constraint === 'users_email_key') {
+        return res.status(400).json({ error: 'Email already exists' });
+      }
+      if (error.constraint === 'users_phone_key') {
+        return res.status(400).json({ error: 'Phone number already exists' });
+      }
+      if (error.constraint === 'users_national_id_key') {
+        return res.status(400).json({ error: 'National ID already exists' });
+      }
+      return res.status(400).json({ error: 'Record already exists' });
+    }
     res.status(500).json({ error: 'Server error' });
   }
 };
