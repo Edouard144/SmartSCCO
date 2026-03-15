@@ -42,7 +42,7 @@ const generateEmailOTP = async (email) => {
     console.log(`✅ Email OTP sent to ${email}`);
   } catch (error) {
     console.error('Error sending email:', error);
-    throw new Error('Failed to send email OTP');
+    throw new Error('SMTP Error: ' + error.message);
   }
 
   return emailOTP;
