@@ -31,4 +31,20 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, updateProfile };
+const submitKyc = async (req, res) => {
+  try {
+    // In a real app, we'd handle file uploads here (e.g. using multer)
+    // For now, we update kyc_status to 'pending' to simulate submission
+    const result = await pool.query(
+      `UPDATE users SET kyc_status = 'pending' WHERE id = $1 RETURNING id, kyc_status`,
+      [req.user.id]
+    );
+
+    res.json({ message: 'KYC documents submitted for review', user: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { getProfile, updateProfile, submitKyc };

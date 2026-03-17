@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getProfile, updateProfile } = require('../controllers/userController');
+const { getProfile, updateProfile, submitKyc } = require('../controllers/userController');
 const { protect } = require('../utils/authMiddleware');
 
 /**
@@ -43,5 +43,19 @@ router.get('/profile', protect, getProfile);
  *         description: Profile updated
  */
 router.put('/profile', protect, updateProfile);
+
+/**
+ * @swagger
+ * /api/users/kyc:
+ *   post:
+ *     summary: Submit KYC documents (Simulation)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: KYC submitted
+ */
+router.post('/kyc', protect, submitKyc);
 
 module.exports = router;
