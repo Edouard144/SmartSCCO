@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep:*)",
+      "Bash(find backend/routes -name \"*.js\" -exec basename {})",
+      "Bash(psql:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getProfile, updateProfile, submitKyc } = require('../controllers/userController');
+const { getProfile, updateProfile, submitKyc, searchUsers, changePassword } = require('../controllers/userController');
 const { protect } = require('../utils/authMiddleware');
 
 /**
@@ -57,5 +57,59 @@ router.put('/profile', protect, updateProfile);
  *         description: KYC submitted
  */
 router.post('/kyc', protect, submitKyc);
+
+/**
+ * @swagger
+ * /api/users/search:
+ *   get:
+ *     summary: Search users by email, phone, name, or ID (for beneficiaries)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *           minLength: 2
+ *         description: Search query (email, phone, name, or ID)
+ *     responses:
+ *       200:
+ *         description: List of matching users (excludes self)
+ *       400:
+ *         description: Query too short
+ */
+router.get('/search', protect, searchUsers);
+
+/**
+ * @swagger
+ * /api/users/change-password:
+ *   post:
+ *     summary: Change password (requires current password)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [current_password, new_password]
+ *             properties:
+ *               current_password:
+ *                 type: string
+ *                 example: "oldpass123"
+ *               new_password:
+ *                 type: string
+ *                 example: "newpass456"
+ *     responses:
+ *       200:
+ *         description: Password changed
+ *       400:
+ *         description: Current password wrong or new password too short
+ */
+router.post('/change-password', protect, changePassword);
 
 module.exports = router;

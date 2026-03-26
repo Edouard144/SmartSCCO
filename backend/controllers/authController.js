@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const db = require('../db');
 const { createUser, getUserByEmail, getUserById, saveRefreshToken, getUserByRefreshToken } = require('../models/userModel');
 const { createWallet } = require('../models/walletModel');
 const { generateEmailOTP, generatePhoneOTP, verifyOTP, generateOTP} = require('../utils/otpGenerator');
@@ -86,7 +87,14 @@ const verifyLogin = async (req, res) => {
       message: 'Login successful',
       accessToken,
       refreshToken,
-      user: { id: user.id, email: user.email, role: user.role }
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        phone: user.phone,
+        national_id: user.national_id,
+        role: user.role
+      }
     });
   } catch (error) {
     console.error(error);
@@ -97,19 +105,20 @@ const verifyLogin = async (req, res) => {
 // REFRESH TOKEN — get new access token using refresh token
 const refreshToken = async (req, res) => {
   try {
-    const { token } = req.body;
-    if (!token) return res.status(401).json({ error: 'Refresh token required' });
+    const { token, refresh_token } = req.body;
+    const refreshToken = token || refresh_token;
+    if (!refreshToken) return res.status(401).json({ error: 'Refresh token required' });
 
     // Verify refresh token
-    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
 
     // Check token exists in DB (not logged out)
-    const user = await getUserByRefreshToken(token);
+    const user = await getUserByRefreshToken(refreshToken);
     if (!user) return res.status(403).json({ error: 'Invalid refresh token' });
 
     // Issue new access token
-    const accessToken = generateAccessToken(user);
-    res.json({ accessToken });
+    const newAccessToken = generateAccessToken(user);
+    res.json({ accessToken: newAccessToken });
   } catch (error) {
     res.status(403).json({ error: 'Invalid or expired refresh token' });
   }
@@ -118,14 +127,16 @@ const refreshToken = async (req, res) => {
 // LOGOUT — delete refresh token from DB
 const logout = async (req, res) => {
   try {
-    const { token } = req.body;
-    if (!token) return res.status(400).json({ error: 'Token required' });
+    const { token, refresh_token } = req.body;
+    const refreshToken = token || refresh_token;
 
-    // Remove refresh token so it can never be reused
-    await require('../db').query(
-      `UPDATE users SET refresh_token = NULL WHERE refresh_token = $1`,
-      [token]
-    );
+    // If token provided, invalidate it; otherwise just return success (frontend cleared storage)
+    if (refreshToken) {
+      await db.query(
+        `UPDATE users SET refresh_token = NULL WHERE refresh_token = $1`,
+        [refreshToken]
+      );
+    }
 
     res.json({ message: 'Logged out successfully' });
   } catch (error) {
@@ -166,7 +177,7 @@ const resetPassword = async (req, res) => {
 
     // Hash new password and save
     const password_hash = await bcrypt.hash(new_password, 10);
-    await require('../db').query(
+    await db.query(
       `UPDATE users SET password_hash = $1 WHERE email = $2`,
       [password_hash, email]
     );
