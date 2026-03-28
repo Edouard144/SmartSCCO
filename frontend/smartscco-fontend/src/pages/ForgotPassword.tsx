@@ -61,10 +61,11 @@ const ForgotPassword = () => {
                 </p>
               </CardContent>
             </Card>
-          </div>
-        </PortalLayout>
-      );
-    }
+          </motion.div>
+        </div>
+      </PortalLayout>
+    );
+  }
 
   return (
     <PortalLayout>
@@ -110,10 +111,10 @@ const ForgotPassword = () => {
               </p>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
+      </div>
       </PortalLayout>
     );
-  }
 };
 
 export default ForgotPassword;

@@ -117,10 +117,11 @@ const ResetPassword = () => {
                 </p>
               </CardContent>
             </Card>
-          </div>
-        </PortalLayout>
-      );
-    }
+          </motion.div>
+        </div>
+      </PortalLayout>
+    );
+  }
 
   return (
     <PortalLayout>
@@ -151,7 +152,7 @@ const ResetPassword = () => {
                     placeholder="123456"
                     maxLength={6}
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0,6))}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     className="text-center tracking-[0.5em] text-lg"
                     required
                   />
@@ -191,10 +192,11 @@ const ResetPassword = () => {
               </p>
             </CardContent>
           </Card>
-        </div>
-      </PortalLayout>
-    );
-  }
+        </motion.div>
+      </div>
+    </PortalLayout>
+  );
 };
 
 export default ResetPassword;
+
