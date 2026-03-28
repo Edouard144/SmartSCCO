@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "@/components/ThemeToggle";
+import api from "@/lib/api";
 
 const memberLinks = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -45,6 +46,15 @@ const PortalLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      api.get("/notifications/unread-count")
+        .then((res) => setUnreadCount(res.data.count || res.data.unread || 0))
+        .catch(() => {});
+    }
+  }, [user]);
 
   const links = isAdmin
     ? [...adminLinks, ...memberLinks]
@@ -130,6 +140,11 @@ const PortalLayout = ({ children }: { children: React.ReactNode }) => {
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/notifications")}>
               <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground ring-2 ring-background">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Button>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-gradient-accent flex items-center justify-center text-primary-foreground text-sm font-bold">

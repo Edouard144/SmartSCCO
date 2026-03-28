@@ -27,6 +27,9 @@ const LoansPage = () => {
   const refresh = () => forceUpdate(n => n + 1);
   const [applyOpen, setApplyOpen] = useState(false);
   const [repayOpen, setRepayOpen] = useState<string | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState<string | null>(null);
+  const [schedule, setSchedule] = useState<any[]>([]);
+  const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [form, setForm] = useState({ amount: "", purpose: "", term_months: "12" });
   const [repayAmount, setRepayAmount] = useState("");
 
@@ -129,23 +132,63 @@ const LoansPage = () => {
                         <span className="text-foreground">{loan.interest_rate}%</span>
                       </div>
                     )}
-                    {(loan.status === "active" || loan.status === "approved") && (
-                      <Dialog open={repayOpen === loan.id} onOpenChange={(o) => setRepayOpen(o ? loan.id : null)}>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" className="w-full mt-2">Make Repayment</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader><DialogTitle>Loan Repayment</DialogTitle></DialogHeader>
-                          <div className="space-y-4 pt-4">
-                            <div className="space-y-2"><Label>Amount (RWF)</Label><Input type="number" placeholder="25000" value={repayAmount} onChange={(e) => setRepayAmount(e.target.value)} /></div>
-                            <Button onClick={() => handleRepay(loan.id)} className="w-full bg-gradient-accent text-primary-foreground">Pay</Button>
+                      {(loan.status === "active" || loan.status === "approved") && (
+                        <div className="grid grid-cols-2 gap-2 mt-4">
+                          <Button variant="outline" className="w-full" onClick={() => handleOpenSchedule(loan.id)}>
+                            View Schedule
+                          </Button>
+                          <Dialog open={repayOpen === loan.id} onOpenChange={(o) => setRepayOpen(o ? loan.id : null)}>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" className="w-full bg-gradient-accent text-primary-foreground border-0 hover:opacity-90">Repay</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader><DialogTitle>Loan Repayment</DialogTitle></DialogHeader>
+                              <div className="space-y-4 pt-4">
+                                <div className="space-y-2"><Label>Amount (RWF)</Label><Input type="number" placeholder="25000" value={repayAmount} onChange={(e) => setRepayAmount(e.target.value)} /></div>
+                                <Button onClick={() => handleRepay(loan.id)} className="w-full bg-gradient-accent text-primary-foreground">Pay</Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      )}
+
+                      {/* Schedule Modal */}
+                      <Dialog open={scheduleOpen === loan.id} onOpenChange={(o) => setScheduleOpen(o ? loan.id : null)}>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader><DialogTitle>Repayment Schedule</DialogTitle></DialogHeader>
+                          <div className="pt-4 max-h-[60vh] overflow-y-auto">
+                            {isScheduleLoading ? (
+                              <div className="py-8 text-center text-muted-foreground flex items-center justify-center">
+                                <span className="animate-spin mr-2 h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                                Loading schedule...
+                              </div>
+                            ) : schedule.length === 0 ? (
+                              <div className="text-center py-8 text-muted-foreground">No schedule details available.</div>
+                            ) : (
+                              <div className="space-y-3">
+                                {schedule.map((payment, idx) => (
+                                  <div key={idx} className="flex justify-between items-center p-3 border rounded-lg">
+                                    <div className="space-y-1">
+                                      <p className="font-medium">Month {payment.month || idx + 1}</p>
+                                      <p className="text-sm text-muted-foreground">Due: {payment.due_date ? new Date(payment.due_date).toLocaleDateString() : "TBD"}</p>
+                                    </div>
+                                    <div className="text-right space-y-1">
+                                      <p className="font-semibold">{Number(payment.amount_due || payment.amount).toLocaleString()} RWF</p>
+                                      <Badge variant="outline" className={payment.status === "paid" ? "border-primary text-primary" : "text-muted-foreground"}>
+                                        {payment.status || "pending"}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </DialogContent>
                       </Dialog>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
+
+                    </CardContent>
+                  </Card>
+                </motion.div>
             ))}
           </div>
         )}

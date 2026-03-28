@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FileText, Filter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,18 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PortalLayout from "@/components/portal/PortalLayout";
-
-const AUDIT_LOGS = [
-  { id: "a1", user: "Jean Baptiste Mugabo", action: "Approved Loan", target: "Loan #loan-003", ip: "192.168.1.45", created_at: "2025-03-10T14:30:00Z" },
-  { id: "a2", user: "Jean Baptiste Mugabo", action: "Rejected Loan", target: "Loan #loan-004", ip: "192.168.1.45", created_at: "2025-03-10T14:25:00Z" },
-  { id: "a3", user: "Jean Baptiste Mugabo", action: "Reversed Transaction", target: "TX #tx-007", ip: "192.168.1.45", created_at: "2025-03-09T10:15:00Z" },
-  { id: "a4", user: "Jean Baptiste Mugabo", action: "Updated Member", target: "User #user-005", ip: "192.168.1.45", created_at: "2025-03-08T16:00:00Z" },
-  { id: "a5", user: "Jean Baptiste Mugabo", action: "Created Branch", target: "Branch: Kigali Main", ip: "10.0.0.1", created_at: "2025-03-07T09:30:00Z" },
-  { id: "a6", user: "Jean Baptiste Mugabo", action: "Exported Report", target: "Members CSV", ip: "10.0.0.1", created_at: "2025-03-06T11:00:00Z" },
-  { id: "a7", user: "Jean Baptiste Mugabo", action: "Resolved Fraud Alert", target: "Alert #f2", ip: "192.168.1.45", created_at: "2025-03-05T13:45:00Z" },
-  { id: "a8", user: "Jean Baptiste Mugabo", action: "Approved Loan", target: "Loan #loan-001", ip: "10.0.0.1", created_at: "2025-03-04T08:20:00Z" },
-];
-
+import api from "@/lib/api";
 const ACTION_TYPES = ["All", "Approved Loan", "Rejected Loan", "Reversed Transaction", "Updated Member", "Created Branch", "Exported Report", "Resolved Fraud Alert"];
 
 const actionColor: Record<string, string> = {
@@ -32,7 +21,24 @@ const actionColor: Record<string, string> = {
 
 const AdminAuditPage = () => {
   const [filter, setFilter] = useState("All");
-  const logs = filter === "All" ? AUDIT_LOGS : AUDIT_LOGS.filter(l => l.action === filter);
+  const [allLogs, setAllLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAudit = async () => {
+      try {
+        const res = await api.get('/audit');
+        setAllLogs(res.data.logs || res.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAudit();
+  }, []);
+
+  const logs = filter === "All" ? allLogs : allLogs.filter(l => l.action === filter);
 
   return (
     <PortalLayout>
@@ -64,14 +70,18 @@ const AdminAuditPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map(log => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium text-foreground">{log.user}</TableCell>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading audit logs...</TableCell></TableRow>
+                  ) : logs.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No audit logs found</TableCell></TableRow>
+                  ) : logs.map((log, i) => (
+                    <TableRow key={log.id || i}>
+                      <TableCell className="font-medium text-foreground">{log.admin_name || log.admin_id || log.user || "—"}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={actionColor[log.action] || ""}>{log.action}</Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">{log.target}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm font-mono">{log.ip}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm font-mono">{log.ip_address || log.ip || "—"}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{new Date(log.created_at).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}

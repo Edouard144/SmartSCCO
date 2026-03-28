@@ -6,71 +6,65 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import PortalLayout from "@/components/portal/PortalLayout";
-import { MOCK_MEMBERS, MOCK_TRANSACTIONS, MOCK_LOANS } from "@/lib/mockData";
+import api from "@/lib/api";
 import { toast } from "sonner";
-
-const downloadCSV = (filename: string, headers: string[], rows: string[][]) => {
-  const csv = [headers.join(","), ...rows.map(r => r.map(c => `"${c}"`).join(","))].join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast.success(`${filename} downloaded`);
-};
-
-const exports = [
-  {
-    title: "Members Report",
-    description: "Export all member data including status and registration date",
-    icon: Users,
-    color: "bg-primary/10 text-primary",
-    action: () => downloadCSV("members.csv",
-      ["Name", "Email", "Phone", "Status", "Joined"],
-      MOCK_MEMBERS.map(m => [m.full_name, m.email, m.phone || "", m.status || "active", m.created_at])
-    ),
-  },
-  {
-    title: "Transactions Report",
-    description: "Export complete transaction history with categories",
-    icon: CreditCard,
-    color: "bg-accent/10 text-accent",
-    action: () => downloadCSV("transactions.csv",
-      ["ID", "Type", "Amount", "Description", "Category", "Status", "Date"],
-      MOCK_TRANSACTIONS.map(t => [t.id, t.type, String(t.amount), t.description, t.category, t.status, t.created_at])
-    ),
-  },
-  {
-    title: "Loans Report",
-    description: "Export loan applications, status and repayment details",
-    icon: FileText,
-    color: "bg-primary/10 text-primary",
-    action: () => downloadCSV("loans.csv",
-      ["ID", "User", "Amount", "Purpose", "Term", "Rate", "Status", "Date"],
-      MOCK_LOANS.map(l => [l.id, l.user_name, String(l.amount), l.purpose, `${l.term_months}mo`, `${l.interest_rate}%`, l.status, l.created_at])
-    ),
-  },
-  {
-    title: "Fraud Alerts Report",
-    description: "Export fraud alert history for compliance records",
-    icon: AlertTriangle,
-    color: "bg-destructive/10 text-destructive",
-    action: () => downloadCSV("fraud-alerts.csv",
-      ["User", "Description", "Severity", "Status", "Date"],
-      [
-        ["Patrick Niyonzima", "Multiple failed login attempts", "HIGH", "open", "2025-03-10"],
-        ["Marie Claire Uwimana", "Large transfer exceeding limit", "HIGH", "open", "2025-03-09"],
-        ["Alice Mukamana", "Login from unusual location", "MEDIUM", "open", "2025-03-08"],
-      ]
-    ),
-  },
-];
 
 const AdminExportPage = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const handleExport = async (type: string, filename: string) => {
+    try {
+      const params = new URLSearchParams();
+      if (dateFrom) params.append("from", dateFrom);
+      if (dateTo) params.append("to", dateTo);
+      const url = `/export/${type}?${params.toString()}`;
+
+      const res = await api.get(url, { responseType: "blob" });
+      const blob = new Blob([res.data], { type: "text/csv" });
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(downloadUrl);
+      toast.success(`${filename} exported successfully`);
+    } catch (err: any) {
+      console.error("Export error", err);
+      toast.error("Failed to export data");
+    }
+  };
+
+  const exportsData = [
+    {
+      title: "Members Report",
+      description: "Export all member data including status and registration date",
+      icon: Users,
+      color: "bg-primary/10 text-primary",
+      action: () => handleExport("members", "members.csv"),
+    },
+    {
+      title: "Transactions Report",
+      description: "Export complete transaction history with categories",
+      icon: CreditCard,
+      color: "bg-accent/10 text-accent",
+      action: () => handleExport("transactions", "transactions.csv"),
+    },
+    {
+      title: "Loans Report",
+      description: "Export loan applications, status and repayment details",
+      icon: FileText,
+      color: "bg-primary/10 text-primary",
+      action: () => handleExport("loans", "loans.csv"),
+    },
+    {
+      title: "Fraud Alerts Report",
+      description: "Export fraud alert history for compliance records",
+      icon: AlertTriangle,
+      color: "bg-destructive/10 text-destructive",
+      action: () => handleExport("fraud-alerts", "fraud-alerts.csv"),
+    },
+  ];
 
   return (
     <PortalLayout>
@@ -97,7 +91,7 @@ const AdminExportPage = () => {
         </Card>
 
         <div className="grid gap-4 md:grid-cols-2">
-          {exports.map((exp, i) => (
+          {exportsData.map((exp, i) => (
             <motion.div key={exp.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Card className="shadow-card hover:shadow-card-hover transition-shadow">
                 <CardContent className="flex items-center gap-4 p-6">

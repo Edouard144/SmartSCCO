@@ -7,24 +7,49 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import PortalLayout from "@/components/portal/PortalLayout";
 import api from "@/lib/api";
 
+import { toast } from "sonner";
+
 const AdminMembers = () => {
   const [search, setSearch] = useState("");
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchMembers = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/admin/members');
+      setMembers(res.data.members || res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch members", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchMembers = async () => {
-      try {
-        const res = await api.get('/admin/members'); // Adjust endpoint if needed
-        setMembers(res.data.members || res.data || []);
-      } catch (err) {
-        console.error("Failed to fetch members", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchMembers();
   }, []);
+
+  const handleKyc = async (id: string) => {
+    try {
+      await api.put(`/admin/kyc/${id}`);
+      toast.success("KYC Approved");
+      fetchMembers();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Action failed");
+    }
+  };
+
+  const toggleSuspend = async (id: string, isSuspended: boolean) => {
+    try {
+      if (isSuspended) await api.put(`/admin/unsuspend/${id}`);
+      else await api.put(`/admin/suspend/${id}`);
+      toast.success(isSuspended ? "Member restored" : "Member suspended");
+      fetchMembers();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Action failed");
+    }
+  };
 
   const filtered = search
     ? members.filter(m =>
@@ -57,6 +82,7 @@ const AdminMembers = () => {
                   <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -75,6 +101,19 @@ const AdminMembers = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{m.created_at ? new Date(m.created_at).toLocaleDateString() : "—"}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      {!m.kyc_verified && (
+                        <button onClick={() => handleKyc(m.id)} className="text-xs text-primary hover:underline">
+                          Approve KYC
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => toggleSuspend(m.id, m.status === "suspended")} 
+                        className={`text-xs hover:underline ${m.status === "suspended" ? "text-emerald" : "text-destructive"}`}
+                      >
+                        {m.status === "suspended" ? "Restore" : "Suspend"}
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

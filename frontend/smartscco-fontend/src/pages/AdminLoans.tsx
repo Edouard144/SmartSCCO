@@ -72,12 +72,27 @@ const AdminLoans = () => {
     }
   };
 
+  const runPenaltyCheck = async () => {
+    try {
+      await api.post("/loans/penalty-check");
+      toast.success("Penalty check completed successfully");
+      refresh();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to run penalty check");
+    }
+  };
+
   return (
     <PortalLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Loan Administration</h1>
-          <p className="text-muted-foreground">Review and manage loan applications</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-foreground">Loan Administration</h1>
+            <p className="text-muted-foreground">Review and manage loan applications</p>
+          </div>
+          <Button onClick={runPenaltyCheck} variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
+            Run Penalty Check
+          </Button>
         </div>
 
         <Card className="shadow-card">
